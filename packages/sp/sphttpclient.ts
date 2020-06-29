@@ -59,7 +59,8 @@ export class SPHttpClient implements IRequestClient {
         // if we have either a request digest or an authorization header we don't need a digest
         if (opts.method && opts.method.toUpperCase() !== "GET" && !headers.has("X-RequestDigest") && !headers.has("Authorization")) {
 
-            const digest = await this._digestCache(extractWebUrl(url));
+            const fetchClient = this._getFetchClient(opts);
+            const digest = await this._digestCache(fetchClient, extractWebUrl(url));
             headers.append("X-RequestDigest", digest);
         }
 
@@ -175,15 +176,33 @@ interface ICachedDigest {
 }
 
 interface IGetDigest {
-    (webUrl: string): Promise<string>;
+    (fetchClient: IHttpClientImpl, webUrl: string): Promise<string>;
 }
 
 // allows for the caching of digests across all HttpClient's which each have their own DigestCache wrapper.
-const digests = new Map<string, ICachedDigest>();
+// digest is cached per each web per each fetch client separately, as these may hold operate under different credentials
+const digestsPerClientCache = new WeakMap<IHttpClientImpl, Map<string, ICachedDigest>>();
+
+function getCachedDigests(fetchClient: IHttpClientImpl): Map<string, ICachedDigest> {
+
+    const cachedMap = digestsPerClientCache.get(fetchClient);
+
+    if (cachedMap) {
+        return cachedMap;
+    }
+
+    const map = new Map<string, ICachedDigest>();
+
+    digestsPerClientCache.set(fetchClient, map);
+
+    return map;
+}
 
 function getDigestFactory(client: SPHttpClient): IGetDigest {
 
-    return async (webUrl: string) => {
+    return async (fetchClient: IHttpClientImpl, webUrl: string) => {
+
+        const digests = getCachedDigests(fetchClient);
 
         const cachedDigest: ICachedDigest = digests.get(webUrl);
 
@@ -204,6 +223,7 @@ function getDigestFactory(client: SPHttpClient): IGetDigest {
         const resp = await client.fetchRaw(url, {
             cache: "no-cache",
             credentials: "same-origin",
+            fetchClient,
             headers: assign(headers, SPRuntimeConfig.headers, true),
             method: "POST",
         });
