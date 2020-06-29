@@ -17,7 +17,7 @@ export class SPHttpClient implements IRequestClient {
 
     private _digestCache: IGetDigest;
 
-    constructor(private _impl: IHttpClientImpl = SPRuntimeConfig.fetchClientFactory()) {
+    constructor(private _defaultFetchClient: IHttpClientImpl = SPRuntimeConfig.fetchClientFactory()) {
         this._digestCache = getDigestFactory(this);
     }
 
@@ -101,8 +101,10 @@ export class SPHttpClient implements IRequestClient {
                 }
             };
 
+            const fetchClient = this._getFetchClient(options);
+
             // send the actual request
-            this._impl.fetch(url, options).then((response) => {
+            fetchClient.fetch(url, options).then((response) => {
 
                 if (response.status === 429) {
                     // we have been throttled
@@ -152,6 +154,10 @@ export class SPHttpClient implements IRequestClient {
     public delete(url: string, options: IFetchOptions = {}): Promise<Response> {
         const opts = assign(options, { method: "DELETE" });
         return this.fetch(url, opts);
+    }
+
+    private _getFetchClient(options: IFetchOptions): IHttpClientImpl {
+        return options.fetchClient || this._defaultFetchClient;
     }
 }
 
