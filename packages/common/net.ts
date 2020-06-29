@@ -7,6 +7,7 @@ export interface IConfigOptions {
     mode?: "navigate" | "same-origin" | "no-cors" | "cors";
     credentials?: "omit" | "same-origin" | "include";
     cache?: "default" | "no-store" | "reload" | "no-cache" | "force-cache" | "only-if-cached";
+    fetchClient?: IHttpClientImpl;
 }
 
 export interface IFetchOptions extends IConfigOptions {
@@ -48,7 +49,7 @@ export function mergeOptions(target: IConfigOptions, source: IConfigOptions): vo
 
 /**
  * Parses out the root of the request url to use as the resource when getting the token
- * 
+ *
   * @param url The url to parse
  */
 export function getADALResource(url: string): string {
@@ -104,7 +105,7 @@ export class BearerTokenFetchClient extends FetchClient {
 export class SPFxAdalClient extends BearerTokenFetchClient {
 
     /**
-     * 
+     *
      * @param context provide the appropriate SPFx Context object
      */
     constructor(private context: ISPFXContext) {
@@ -113,7 +114,7 @@ export class SPFxAdalClient extends BearerTokenFetchClient {
 
     /**
      * Executes a fetch request using the supplied url and options
-     * 
+     *
      * @param url Absolute url of the request
      * @param options Any options
      */
@@ -126,7 +127,7 @@ export class SPFxAdalClient extends BearerTokenFetchClient {
 
     /**
      * Gets an AAD token for the provided resource using the SPFx AADTokenProvider
-     * 
+     *
      * @param resource Resource for which a token is to be requested (ex: https://graph.microsoft.com)
      */
     public async getToken(resource: string): Promise<string> {

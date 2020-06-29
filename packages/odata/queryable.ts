@@ -58,6 +58,11 @@ export function cloneQueryableData(source: Partial<IQueryableData>): Partial<IQu
     parsed.options.body = source.options.body;
   }
 
+  // this handles HTTP client instance that cannot be JSON encoded
+  if (source.options && source.options.fetchClient) {
+    parsed.options.fetchClient = source.options.fetchClient;
+  }
+
   return parsed;
 }
 
@@ -128,7 +133,7 @@ export abstract class Queryable<DefaultActionType = any> implements IQueryable<D
   public abstract toUrlAndQuery(): string;
 
   /**
-   * The default action for this 
+   * The default action for this
    */
   public abstract defaultAction(options?: IFetchOptions): Promise<DefaultActionType>;
 
@@ -160,7 +165,7 @@ export abstract class Queryable<DefaultActionType = any> implements IQueryable<D
 
   /**
    * Sets custom options for current object and all derived objects accessible via chaining
-   * 
+   *
    * @param options custom options
    */
   public configure(options: IConfigOptions): this {
@@ -170,7 +175,7 @@ export abstract class Queryable<DefaultActionType = any> implements IQueryable<D
 
   /**
    * Configures this instance from the configure options of the supplied instance
-   * 
+   *
    * @param o Instance from which options should be taken
    */
   public configureFrom(o: IQueryable<any>): this {
@@ -200,7 +205,7 @@ export abstract class Queryable<DefaultActionType = any> implements IQueryable<D
 
   /**
    * Allows you to set a request specific processing pipeline
-   * 
+   *
    * @param pipeline The set of methods, in order, to execute a given request
    */
   public withPipeline(pipeline: PipelineMethod<DefaultActionType>[]): this {
@@ -278,7 +283,7 @@ export abstract class Queryable<DefaultActionType = any> implements IQueryable<D
 
   /**
    * Clones this instance's data to target
-   * 
+   *
    * @param target Instance to which data is written
    * @param settings [Optional] Settings controlling how clone is applied
    */
