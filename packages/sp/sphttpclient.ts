@@ -17,7 +17,7 @@ export class SPHttpClient implements IRequestClient {
 
     private _digestCache: IGetDigest;
 
-    constructor(private _defaultFetchClient: IHttpClientImpl = SPRuntimeConfig.fetchClientFactory()) {
+    constructor(private _defaultFetchClient?: IHttpClientImpl) {
         this._digestCache = getDigestFactory(this);
     }
 
@@ -158,7 +158,15 @@ export class SPHttpClient implements IRequestClient {
     }
 
     private _getFetchClient(options: IFetchOptions): IHttpClientImpl {
-        return options.fetchClient || this._defaultFetchClient;
+        if (options.fetchClient) {
+            return options.fetchClient;
+        }
+
+        if (this._defaultFetchClient === undefined) {
+            this._defaultFetchClient = SPRuntimeConfig.fetchClientFactory();
+        }
+
+        return this._defaultFetchClient;
     }
 }
 
