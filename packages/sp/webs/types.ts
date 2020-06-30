@@ -14,7 +14,7 @@ import {
 import { defaultPath } from "../decorators";
 import { IChangeQuery } from "../types";
 import { odataUrlFrom } from "../odata";
-import { SPBatch } from "../batch";
+import { deriveBatchOptions, SPBatch } from "../batch";
 import { metadata } from "../utils/metadata";
 import { Site, IOpenWebByIdResult } from "../sites";
 import { spPost, spGet } from "../operations";
@@ -119,7 +119,9 @@ export class _Web extends _SharePointQueryableInstance<IWebInfo> {
      *
      */
     public createBatch(): SPBatch {
-        return new SPBatch(this.parentUrl);
+        const batchOptions = deriveBatchOptions(this.data.options);
+
+        return new SPBatch(this.parentUrl, batchOptions);
     }
 
     /**

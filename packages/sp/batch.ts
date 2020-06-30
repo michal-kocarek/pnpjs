@@ -1,16 +1,29 @@
 import { Batch } from "@pnp/odata";
-import { getGUID, isUrlAbsolute, combine, mergeHeaders, hOP } from "@pnp/common";
+import { getGUID, combine, mergeHeaders, hOP, IHttpClientImpl, IConfigOptions, isUrlAbsolute } from "@pnp/common";
 import { Logger, LogLevel } from "@pnp/logging";
 import { SPHttpClient } from "./sphttpclient";
 import { SPRuntimeConfig } from "./splibconfig";
 import { toAbsoluteUrl } from "./utils/toabsoluteurl";
+
+export interface IBatchConfigOptions {
+    fetchClient?: IHttpClientImpl;
+}
+
+/**
+ * Derive options for batch instance from generic options that may be present in queryable
+ */
+export function deriveBatchOptions(options: IConfigOptions): IBatchConfigOptions {
+    return {
+        fetchClient: options.fetchClient,
+    };
+}
 
 /**
  * Manages a batch of OData operations
  */
 export class SPBatch extends Batch {
 
-    constructor(private baseUrl: string) {
+    constructor(private baseUrl: string, private options: IBatchConfigOptions = {}) {
         super();
     }
 
@@ -78,6 +91,15 @@ export class SPBatch extends Batch {
 
         Logger.write(`[${this.batchId}] (${(new Date()).getTime()}) Executing batch with ${this.requests.length} requests.`, LogLevel.Info);
 
+        for (let i = 0; i < this.requests.length; i++) {
+            // make sure fetch client configuration is same for all requests
+            // it is either undefined for all, or must be set for batch and equal for all requests in the batch
+            if (this.requests[0].options.fetchClient !== this.options.fetchClient) {
+                const reqInfo = this.requests[i];
+                throw Error(`Request #${i + 1} cannot have different fetch client configuration than the batch (${reqInfo.method} ${reqInfo.url})!`);
+            }
+        }
+
         // if we don't have any requests, don't bother sending anything
         // this could be due to caching further upstream, or just an empty batch
         if (this.requests.length < 1) {
@@ -88,7 +110,7 @@ export class SPBatch extends Batch {
         // creating the client here allows the url to be populated for nodejs client as well as potentially
         // any other hacks needed for other types of clients. Essentially allows the absoluteRequestUrl
         // below to be correct
-        const client = new SPHttpClient();
+        const client = new SPHttpClient(this.options.fetchClient);
 
         // due to timing we need to get the absolute url here so we can use it for all the individual requests
         // and for sending the entire batch
@@ -133,6 +155,12 @@ export class SPBatch extends Batch {
 
             // this is the url of the individual request within the batch
             const url = isUrlAbsolute(reqInfo.url) ? reqInfo.url : combine(absoluteRequestUrl, reqInfo.url);
+
+            if (!isUrlAbsolute(url)) {
+                // in case that webAbsoluteUrl is not set, SPRest (and consecutively SPBatch) must be created with baseUrl variable, because
+                // URLs inside batch request must be in absolute form.
+                throw Error(`Request #${i + 1} must have absolute URL. Make sure configuration is correct (${reqInfo.method} ${reqInfo.url})!`);
+            }
 
             Logger.write(`[${this.batchId}] (${(new Date()).getTime()}) Adding request ${reqInfo.method} ${url} to batch.`, LogLevel.Verbose);
 

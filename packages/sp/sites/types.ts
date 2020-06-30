@@ -5,7 +5,7 @@ import { hOP, assign } from "@pnp/common";
 import { body } from "@pnp/odata";
 import { odataUrlFrom } from "../odata";
 import { spPost } from "../operations";
-import { SPBatch } from "../batch";
+import { deriveBatchOptions, SPBatch } from "../batch";
 import { escapeQueryStrValue } from "../utils/escapeQueryStrValue";
 import { IChangeQuery } from "../types";
 import { tag } from "../telemetry";
@@ -51,7 +51,9 @@ export class _Site extends _SharePointQueryableInstance {
   }
 
   public createBatch(): SPBatch {
-    return new SPBatch(this.parentUrl);
+    const batchOptions = deriveBatchOptions(this.data.options);
+
+    return new SPBatch(this.parentUrl, batchOptions);
   }
 
   /**
@@ -120,7 +122,7 @@ export class _Site extends _SharePointQueryableInstance {
 
   /**
    * Creates a Modern communication site.
-   * 
+   *
    * @param title The title of the site to create
    * @param lcid The language to use for the site. If not specified will default to 1033 (English).
    * @param shareByEmailEnabled If set to true, it will enable sharing files via Email. By default it is set to false
@@ -131,7 +133,7 @@ export class _Site extends _SharePointQueryableInstance {
    *                     You can use the below default OOTB GUIDs:
    *                     Topic: 00000000-0000-0000-0000-000000000000
    *                     Showcase: 6142d2a0-63a5-4ba0-aede-d9fefca2c767
-   *                     Blank: f6cc5403-0d63-442e-96c0-285923709ffc 
+   *                     Blank: f6cc5403-0d63-442e-96c0-285923709ffc
    * @param hubSiteId The id of the hub site to which the new site should be associated
    * @param owner Optional owner value, required if executing the method in app only mode
    */
@@ -182,7 +184,7 @@ export class _Site extends _SharePointQueryableInstance {
   }
 
   /**
-   * 
+   *
    * @param url Site Url that you want to check if exists
    */
   public async exists(url: string): Promise<boolean> {
@@ -195,14 +197,14 @@ export class _Site extends _SharePointQueryableInstance {
 
   /**
   * Creates a Modern team site backed by Office 365 group. For use in SP Online only. This will not work with App-only tokens
-  * 
+  *
   * @param displayName The title or display name of the Modern team site to be created
   * @param alias Alias of the underlying Office 365 Group
   * @param isPublic Defines whether the Office 365 Group will be public (default), or private.
   * @param lcid The language to use for the site. If not specified will default to English (1033).
   * @param description The description of the site to be created.
   * @param classification The Site classification to use. For instance 'Contoso Classified'. See https://www.youtube.com/watch?v=E-8Z2ggHcS0 for more information
-  * @param owners The Owners of the site to be created     
+  * @param owners The Owners of the site to be created
   */
   public async createModernTeamSite(
     displayName: string,
